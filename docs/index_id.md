@@ -8,7 +8,7 @@ Jika Anda benar-benar tidak tahu cara mengonfigurasi modul ini, Anda mungkin mem
 
 ## Install
 
-- Unduh paket zip modul dari RELEASE dan instal melalui `Magisk` / `KernelSU`. Saat menginstal, Anda akan ditanya apakah akan mengunduh paket lengkap, Anda dapat memilih **unduhan lengkap** atau **unduhan terpisah** nanti, lalu mulai ulang perangkat.
+- Unduh paket zip modul dari RELEASE dan instal melalui `Magisk` . Saat menginstal, Anda akan ditanya apakah akan mengunduh paket lengkap, Anda dapat memilih **unduhan lengkap** atau **unduhan terpisah** nanti, lalu mulai ulang perangkat.
 - Mod ini mendukung pembaruan mod langsung berikutnya di `Magisk Manager` (mod yang diperbarui akan berlaku tanpa me-reboot perangkat).
 
 ### pembaruan kernel
@@ -174,7 +174,7 @@ Anda dapat menjalankan perintah berikut untuk mendapatkan instruksi operasi terk
 
 ```shell
   su -c /data/adb/box/scripts/box.tool
-  # usage: $0 {rconf|reload|upyacd|upcore|upyq|cgroup|port|geox|subs|geosub|all}
+  # usage: $0 {check|reload|upyacd|upcore|cgroup|port|upgeox|all}
   su -c /data/adb/box/scripts/box.service
   # usage: $0 {start|stop|restart|usage|cron}
   su -c /data/adb/box/scripts/box.iptables

@@ -7,11 +7,9 @@ ASH_STANDALONE=1
 
 if [ "$BOOTMODE" != true ]; then
   ui_print "-----------------------------------------------------------"
-  ui_print "! Please install in Magisk Manager or KernelSU Manager"
+  ui_print "! Please install in Magisk Manager"
   ui_print "! Install from recovery is NOT supported"
   abort "-----------------------------------------------------------"
-elif [ "$KSU" = true ] && [ "$KSU_VER_CODE" -lt 10670 ]; then
-  abort "ERROR: Please update your KernelSU and KernelSU Manager"
 fi
 
 # check android
@@ -24,12 +22,7 @@ fi
 
 # check version
 service_dir="/data/adb/service.d"
-if [ "$KSU" = true ]; then
-  ui_print "- kernelSU version: $KSU_VER ($KSU_VER_CODE)"
-  [ "$KSU_VER_CODE" -lt 10683 ] && service_dir="/data/adb/ksu/service.d"
-else
-  ui_print "- Magisk version: $MAGISK_VER ($MAGISK_VER_CODE)"
-fi
+ui_print "- Magisk version: $MAGISK_VER ($MAGISK_VER_CODE)"
 
 if [ ! -d "${service_dir}" ]; then
   mkdir -p "${service_dir}"
@@ -40,26 +33,23 @@ if [ -d "/data/adb/modules/box_for_magisk" ]; then
   ui_print "- Old module deleted."
 fi
 
-ui_print "- Installing Box for Magisk/KernelSU"
+ui_print "- Installing Box for Magisk"
 ui_print "- Extract the ZIP file and skip the META-INF folder into the $MODPATH folder"
 unzip -o "$ZIPFILE" -x 'META-INF/*' -d "$MODPATH" >&2
 
 if [ -d "/data/adb/box" ]; then
   ui_print "- Backup box"
-  temp_bak=$(mktemp -d "/data/adb/box/box.XXXXXXXXXX")
-  temp_dir="${temp_bak}"
-  mv /data/adb/box/* "${temp_dir}/"
+  latest=$(date '+%Y-%m-%d_%H-%M')
+  mkdir -p "/data/adb/box/${latest}"
+  mv /data/adb/box/* "/data/adb/box/${latest}/"
   mv "$MODPATH/box/"* /data/adb/box/
-  backup_box="true"
 else
   mv "$MODPATH/box" /data/adb/
 fi
 
 ui_print "- Create directories"
 mkdir -p $MODPATH/system/bin/
-mkdir -p /data/adb/box/
 mkdir -p /data/adb/box/run/
-mkdir -p /data/adb/box/bin/xclash/
 
 ui_print "- Extract the files uninstall.sh and box_service.sh into the $MODPATH folder and ${service_dir}"
 unzip -j -o "$ZIPFILE" 'uninstall.sh' -d "$MODPATH" >&2
@@ -93,35 +83,12 @@ while true ; do
     /data/adb/box/scripts/box.tool all
     break
   elif $(cat $TMPDIR/events | grep -q KEY_VOLUMEDOWN) ; then
+    sed -Ei 's/^description=(\[.*][[:space:]]*)?/description=[ 🙁 Module installed but you need to download KERNEL(xray clash v2fly sing-box) and GEOX(geosite geoip mmdb) manually ] /g' $MODPATH/module.prop
     rm -rf /data/adb/box/bin/.bin
     ui_print "- skip download KERNEL and GEOX" && break
   fi
 done
 
-if [ "${backup_box}" = "true" ]; then
-  ui_print "- restore configuration xray/clash/sing-box/v2fly"
-  [ -d "${temp_dir}/clash" ] && cp -r "${temp_dir}/clash/"* /data/adb/box/clash/
-  [ -d "${temp_dir}/xray" ] && cp -r "${temp_dir}/xray/"* /data/adb/box/xray/
-  [ -d "${temp_dir}/v2fly" ] && cp -r "${temp_dir}/v2fly/"* /data/adb/box/v2fly/
-  [ -d "${temp_dir}/sing-box" ] && cp -r "${temp_dir}/sing-box/"* /data/adb/box/sing-box/
-
-  if [ -z "$(find /data/adb/box/bin -type f)" ]; then
-    ui_print "- restore bin xray/clash/sing-box/v2fly"
-    cp -r "${temp_dir}/bin/"* "/data/adb/box/bin/"
-  fi
-
-  ui_print "- restore logs, pid and uid.list"
-  cp "${temp_dir}/run/"* "/data/adb/box/run/"
-fi
-
-if [ -z "$(find /data/adb/box/bin -type f)" ]; then
-  sed -Ei 's/^description=(\[.*][[:space:]]*)?/description=[ 🙁 Module installed but you need to download KERNEL(xray clash v2fly sing-box) and GEOX(geosite geoip mmdb) manually ] /g' $MODPATH/module.prop
-fi
-[ "$KSU" = "true" ] && sed -i "s/name=.*/name=Box for KernelSU/g" $MODPATH/module.prop || sed -i "s/name=.*/name=Box for Magisk/g" $MODPATH/module.prop
-
-ui_print "- Delete leftover files"
-rm -rf $MODPATH/box
-rm -f $MODPATH/box_service.sh
+sed -i "s/name=.*/name=Box for Magisk/g" $MODPATH/module.prop
 
 ui_print "- Installation is complete, reboot your device"
-ui_print "- report issues to @taamarin on Telegram"

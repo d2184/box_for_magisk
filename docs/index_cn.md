@@ -8,7 +8,7 @@
 
 ## 安装
 
-- 从 RELEASE 下载模块 zip 包，并通过 `Magisk` / `KernelSU` 安装它。安装时会询问是否下载全量包，您可以选择**全量下载**或者稍后再**单独下载**，然后重新启动设备。
+- 从 RELEASE 下载模块 zip 包，并通过 `Magisk` 安装它。安装时会询问是否下载全量包，您可以选择**全量下载**或者稍后再**单独下载**，然后重新启动设备。
 - 本模块支持在 `Magisk Manager` 中进行下一个在线模块更新（更新模块将在不重新启动设备的情况下生效）。
 
 ### 内核更新
@@ -175,7 +175,7 @@ su -c /data/adb/box/scripts/box.tool all
 
 ```shell
   su -c /data/adb/box/scripts/box.tool
-  # usage: $0 {rconf|reload|upyacd|upcore|upyq|cgroup|port|geox|subs|geosub|all}
+  # usage: $0 {check|reload|upyacd|upcore|cgroup|port|upgeox|all}
   su -c /data/adb/box/scripts/box.service
   # usage: $0 {start|stop|restart|usage|cron}
   su -c /data/adb/box/scripts/box.iptables
