@@ -17,6 +17,8 @@
 
 This project is a [Magisk](https://github.com/topjohnwu/Magisk) module which includes `clash`, `sing-box`, `v2ray` and `xray` proxies.
 
+Forked from [taamarin/box_for_magisk](https://github.com/taamarin/box_for_magisk)
+
 ## Tun (tcp + udp)
 
 `open and edit /data/adb/box/settings.ini`

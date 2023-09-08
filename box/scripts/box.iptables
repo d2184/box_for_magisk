@@ -63,14 +63,6 @@ misc_info() {
   esac
 }
 
-sync_port() {
-  if [[ "${network_mode}" == "tproxy" && "${proxy_mode}" != "tun" ]]; then
-    netstat -tnulp | grep -q "${tproxy_port}" || log Warning "tproxy_port: ${tproxy_port} out of sync with config"
-  elif [[ "${network_mode}" == "mixed" || "${proxy_mode}" == "tun" ]]; then
-    ifconfig | grep -q "${tun_device}" || log Warning "tun_device: '${tun_device}' not found"
-  fi
-}
-
 bin_alive() {
   local PID=$(<"${box_pid}" 2>/dev/null)
   if ! kill -0 "$PID" 2>/dev/null; then
@@ -79,7 +71,7 @@ bin_alive() {
     log Error "please check ${bin_name}.log for more information."
     log Error "killing stale pid $PID"
     for bin in "${bin_list[@]}"; do
-      killall -15 "${bin}" >/dev/null 2>&1 || busybox pkill -15 "${bin}" >/dev/null 2>&1 
+      killall -15 "${bin}" >/dev/null 2>&1 || busybox pkill -15 "${bin}" >/dev/null 2>&1
     done
     cleanup_iptables
     [ -f "${box_pid}" ] && rm -f "${box_pid}"
@@ -108,26 +100,20 @@ probe_user_group() {
 }
 
 disable_ipv6() {
-  sysctl -w net.ipv4.ip_forward=1
-  sysctl -w net.ipv6.conf.all.forwarding=0
+  echo 0 > /proc/sys/net/ipv6/conf/all/accept_ra
+  echo 0 > /proc/sys/net/ipv6/conf/wlan0/accept_ra
+  echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
+  echo 1 > /proc/sys/net/ipv6/conf/default/disable_ipv6
+  echo 1 > /proc/sys/net/ipv6/conf/wlan0/disable_ipv6
+}
 
-  sysctl -w net.ipv6.conf.all.accept_ra=0
-  sysctl -w net.ipv6.conf.wlan0.accept_ra=0
-  sysctl -w net.ipv6.conf.all.disable_ipv6=1
-  sysctl -w net.ipv6.conf.default.disable_ipv6=1
-  sysctl -w net.ipv6.conf.wlan0.disable_ipv6=1
-} >> /dev/null 2>&1
-
-ipv6_enable() {
-  sysctl -w net.ipv4.ip_forward=1
-  sysctl -w net.ipv6.conf.all.forwarding=1
-
-  sysctl -w net.ipv6.conf.all.accept_ra=1
-  sysctl -w net.ipv6.conf.wlan0.accept_ra=1
-  sysctl -w net.ipv6.conf.all.disable_ipv6=0
-  sysctl -w net.ipv6.conf.default.disable_ipv6=0
-  sysctl -w net.ipv6.conf.wlan0.disable_ipv6=0
-} >> /dev/null 2>&1
+enable_ipv6() {
+  echo 1 > /proc/sys/net/ipv6/conf/all/accept_ra
+  echo 1 > /proc/sys/net/ipv6/conf/wlan0/accept_ra
+  echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6
+  echo 0 > /proc/sys/net/ipv6/conf/default/disable_ipv6
+  echo 0 > /proc/sys/net/ipv6/conf/wlan0/disable_ipv6
+}
 
 intranet=(
   0.0.0.0/8
@@ -146,22 +132,22 @@ intranet=(
   240.0.0.0/4
   255.0.0.0/4
   255.255.255.0/24
+  # 255.255.255.255/32
 )
 intranet+=($(ip address | busybox awk '/inet / && !/127\.0\.0\.1/ {print $2}'))
 
 intranet6=(
-  ::/128
-  ::1/128
-  ::ffff:0:0/96
-  100::/64
-  64:ff9b::/96
-  2001::/32
-  2001:10::/28
-  2001:20::/28
-  2001:db8::/32
-  2002::/16
-  fc00::/7
-  fe80::/10
+  ::/128 
+  ::1/128 
+  ::ffff:0:0/96 
+  100::/64 
+  64:ff9b::/96 
+  2001::/32 
+  2001:10::/28 
+  2001:20::/28 
+  2001:db8::/32 
+  2002::/16 
+  fe80::/10 
   ff00::/8
 )
 intranet6+=($(ip -6 address | busybox awk '/inet6/ && !/::1/ && !/fe80/ {print $2}'))
@@ -638,8 +624,8 @@ stop_tproxy() {
 cleanup_iptables() {
   for iptables in "iptables -w 64" "ip6tables -w 64"; do
     iptables="${iptables}" && {
-      stop_tproxy
       stop_redirect
+      stop_tproxy
       forward -D
     } >> /dev/null 2>&1
   done
@@ -662,7 +648,7 @@ if [ "${proxy_mode}" != "tun" ]; then
           start_tproxy && log Info "Creating iptables transparent proxy rules done." || { log Error "Creating iptables transparent proxy rules failed." && stop_tproxy >> /dev/null 2>&1; }
           if [ "${ipv6}" = "true" ]; then
             log Debug "Using IPv6."
-            ipv6_enable
+            enable_ipv6
             iptables="ip6tables -w 64"
             start_tproxy && log Info "Creating ip6tables transparent proxy rules done." || { log Error "Creating ip6tables transparent proxy rules failed." && stop_tproxy >> /dev/null 2>&1; }
           else
@@ -677,7 +663,7 @@ if [ "${proxy_mode}" != "tun" ]; then
           start_redirect && log Info "Creating iptables transparent proxy rules done." || { log Error "Creating iptables transparent proxy rule failed." && stop_redirect >> /dev/null 2>&1; }
           if [ "${ipv6}" = "true" ]; then
             log Debug "Using IPv6."
-            ipv6_enable
+            enable_ipv6
             iptables="ip6tables -w 64"
             start_redirect && log Info "Creating ip6tables transparent proxy rules done." || { log Error "Creating ip6tables transparent proxy rule failed." && stop_redirect >> /dev/null 2>&1; }
           else
@@ -693,7 +679,7 @@ if [ "${proxy_mode}" != "tun" ]; then
           start_redirect && log Info "Creating iptables transparent proxy rules done." || (log Error "Creating iptables transparent proxy rule failed." && stop_redirect >> /dev/null 2>&1)
           if [ "${ipv6}" = "true" ]; then
             log Debug "Using IPv6."
-            ipv6_enable
+            enable_ipv6
             iptables="ip6tables -w 64"
             forward -I || forward -D >> /dev/null 2>&1
             start_redirect && log Info "Creating ip6tables transparent proxy rules done." || (log Error "Creating ip6tables transparent proxy rule failed." && stop_redirect >> /dev/null 2>&1)
@@ -707,7 +693,6 @@ if [ "${proxy_mode}" != "tun" ]; then
           exit 1
         ;;
       esac
-      sync_port
       bin_alive && log Info "${bin_name} connected."
       ;;
     renew)
@@ -726,7 +711,7 @@ if [ "${proxy_mode}" != "tun" ]; then
           start_tproxy && log Info "Creating iptables transparent proxy rules done." || { log Error "Creating iptables transparent proxy rules failed." && stop_tproxy >> /dev/null 2>&1; }
           if [ "${ipv6}" = "true" ]; then
             log Debug "Using IPv6."
-            ipv6_enable
+            enable_ipv6
             iptables="ip6tables -w 64"
             start_tproxy && log Info "Creating ip6tables transparent proxy rules done." || { log Error "Creating ip6tables transparent proxy rules failed." && stop_tproxy >> /dev/null 2>&1; }
           else
@@ -741,7 +726,7 @@ if [ "${proxy_mode}" != "tun" ]; then
           start_redirect && log Info "Creating iptables transparent proxy rules done." || { log Error "Creating iptables transparent proxy rule failed." && stop_redirect >> /dev/null 2>&1; }
           if [ "${ipv6}" = "true" ]; then
             log Debug "Using IPv6."
-            ipv6_enable
+            enable_ipv6
             iptables="ip6tables -w 64"
             start_redirect && log Info "Creating ip6tables transparent proxy rules done." || { log Error "Creating ip6tables transparent proxy rule failed." && stop_redirect >> /dev/null 2>&1; }
           else
@@ -757,7 +742,7 @@ if [ "${proxy_mode}" != "tun" ]; then
           start_redirect && log Info "Creating iptables transparent proxy rules done." || (log Error "Creating iptables transparent proxy rule failed." && stop_redirect >> /dev/null 2>&1)
           if [ "${ipv6}" = "true" ]; then
             log Debug "Using IPv6."
-            ipv6_enable
+            enable_ipv6
             iptables="ip6tables -w 64"
             forward -I || forward -D >> /dev/null 2>&1
             start_redirect && log Info "Creating ip6tables transparent proxy rules done." || (log Error "Creating ip6tables transparent proxy rule failed." && stop_redirect >> /dev/null 2>&1)
@@ -771,12 +756,11 @@ if [ "${proxy_mode}" != "tun" ]; then
           exit 1
         ;;
       esac
-      sync_port
       log Info "restart iptables transparent proxy rules done."
       bin_alive && log Info "${bin_name} connected."
       ;;
     disable)
-      ipv6_enable
+      enable_ipv6
       probe_user_group || log Error "failed to check BOX user group, please make sure ${bin_name} kernel is started."
       log Warning "Cleaning up iptables transparent proxy rules."
       # cleanup iptables ipv4/6
@@ -800,14 +784,13 @@ else
       forward -I && log Info "Create iptables tun rules done." || { log Error "Create iptables tun rules failed." && forward -D >> /dev/null 2>&1; }
       if [ "${ipv6}" = "true" ]; then
         log Debug "Using IPv6."
-        ipv6_enable
+        enable_ipv6
         iptables="ip6tables -w 64"
         forward -I && log Info "Create ip6tables tun rules done." || { log Error "Create ip6tables tun rules failed." && forward -D >> /dev/null 2>&1; }
       else
         disable_ipv6
         log Warning "Disable IPv6."
       fi
-      sync_port
       bin_alive && log Info "${bin_name} connected."
       ;;
     renew)
@@ -822,19 +805,18 @@ else
       forward -I && log Info "Create iptables tun rules done." || { log Error "Create iptables tun rules failed." && forward -D >> /dev/null 2>&1; }
       if [ "${ipv6}" = "true" ]; then
         log Debug "Using IPv6."
-        ipv6_enable
+        enable_ipv6
         iptables="ip6tables -w 64"
         forward -I && log Info "Create ip6tables tun rules done." || { log Error "Create ip6tables tun rules failed." && forward -D >> /dev/null 2>&1; }
       else
         disable_ipv6
         log Warning "Disable IPv6."
       fi
-      sync_port
       log Info "Restart iptables tun rules done."
       bin_alive && log Info "${bin_name} connected."
       ;;
     disable)
-      ipv6_enable
+      enable_ipv6
       probe_user_group || log Error "Failed to check BOX user group, please make sure ${bin_name} kernel is started."
       log Warning "Cleaning up tun rules."
       # Cleanup iptables ipv4/6

@@ -4,20 +4,20 @@ scripts=$(realpath "$0")
 scripts_dir=$(dirname "${scripts}")
 source /data/adb/box/settings.ini
 
-PROPFILE="/data/adb/modules/box_for_root/module.prop"
+PROPFILE="/data/adb/modules/box_for_magisk/module.prop"
 
 box_check_logs() {
   # Delete logs for each bin in the list
   log Info "deleting and backup logs"
   for bin in "${bin_list[@]}"; do
     if [ -f "${box_run}/${bin}.log" ]; then
-      mv "${box_run}/${bin}.log" "${box_run}/${bin}.old.log"
+      mv "${box_run}/${bin}.log" "${box_run}/${bin}.log.old"
     fi
   done
   # Delete other log files
   find "${box_run}" -maxdepth 1 -type f \( -name "root" -o -name "*.list" -o -name "*.inotify.log" \) -exec rm -f {} +
-  # Delete logs that are three days old or older
-  find "${box_run}" -maxdepth 1 -type f -name "*.log" -mtime +3 -exec rm -f {} +
+  # Delete logs 10 minutes ago or older
+  find "${box_run}" -maxdepth 1 -type f -name "*.log" -mmin +10 -exec rm -f {} +
 }
 
 box_bin_alive() {
@@ -46,48 +46,18 @@ box_run_crontab() {
   touch "${box_run}/root"
   chmod 0755 "${box_run}/root"
 
-  if [ "${run_crontab}" = "true" ]; then
-    log Debug "Cron job enabled"
-    echo "${interva_update} ${scripts_dir}/box.tool geosub" >> "${box_run}/root"
-    log Debug "Interval crontab geox and subs: ${interva_update}."
-    log Info "${bin_name} geox updates: ${update_geo}."
-    if [ "${bin_name}" = "clash" ]; then
-      log Info "${bin_name} subscription update: ${update_subscription}."
-    fi
-  else
-    log Info "Cron Job disabled"
-    log Info "Crontab geox and subscription is disabled."
+  if [ "${run_crontab}" = "true" ] && [ "${bin_name}" != "sing-box" ]; then
+    echo "${interval_update} ${scripts_dir}/box.tool upgeox" >> "${box_run}/root"
+    log debug "Interval crontab geox: (${interval_update})."
   fi
-}
-
-xclash() {
-  local clash_option="${clash_option:-meta}"
-  # default to "meta" if clash_option is not set
-  current_clash="$(readlink "${bin_dir}/clash")"
-
-  if [ "$current_clash" != "${bin_dir}/xclash/clash_${clash_option}" ]; then
-    if [ -f "${bin_dir}/xclash/clash_${clash_option}" ]; then
-      if ! ln -sf "${bin_dir}/xclash/clash_${clash_option}" "${bin_dir}/clash"; then
-        log Error "Failed to use clash_${clash_option}"
-        return 1
-      fi
-    else
-      mkdir -p "${bin_dir}/xclash"
-      log Error "${bin_dir}/xclash/clash_${clash_option} file not found"
-      return 1
-    fi
-  fi
-  log Info "xclash [ clash_$clash_option ] setup completed successfully"
 }
 
 box_ownership() {
   # Set ownership and permission of kernel directory
-  chown ${box_user_group} ${bin_path}
+  chown ${box_user_group} ${bin_dir}/*
   chown -R ${box_user_group} ${box_dir}
-  chmod 6755 ${bin_path}
+  chmod 6755 ${bin_dir}/*
   chmod -R 644 ${box_dir}/${bin_name}
-  chmod 0700 ${box_dir}/bin/yq
-  chmod 0700 ${box_dir}/bin/curl
 }
 
 box_permission() {
@@ -134,184 +104,6 @@ box_create_tun() {
   fi
 }
 
-prepare_singbox() {
-  # check configuration file
-  if ! [ -f "${sing_config}" ]; then
-    log Error "configuration file ${sing_config} not found"
-    exit 1
-  else
-    log Info "config ${sing_config}"
-  fi
-
-  yq_command="yq"
-  if ! command -v yq &>/dev/null; then
-    if [ ! -e "${box_dir}/bin/yq" ]; then
-      log Debug "yq file not found, start to download from github"
-      ${scripts_dir}/box.tool upyq
-    fi
-    yq_command="${box_dir}/bin/yq"
-  fi
-  # delete Toggle comment, because yq doesn't work, Execute the sed command to uncomment the "/* ... */", "//" line
-  sed -i '/\/\*/,/\*\//d; /^[[:space:]]*\/\//d; /^( *\/\/|\/\*.*\*\/)$/d' "${box_dir}/sing-box/"*.json
-  if [[ "${network_mode}" == "mixed" || "${proxy_mode}" == "tun" ]]; then
-    if grep -q '"type": "tproxy"' "${sing_config}"; then
-      "${yq_command}" 'del(.inbounds[] | select(.type == "tproxy"))' -i --output-format=json "${sing_config}"
-    fi
-    # Checks if "type" is "tun" in configuration
-    if grep -q '"type": "tun"' "${sing_config}"; then
-      log Info "type [Tun] already exists in ${sing_config}"
-    else
-      # Add "tun" configuration if missing
-      "${yq_command}" '.inbounds += [{"type": "tun","tag": "tun-in","interface_name": "tun3","inet4_address": "172.19.0.1/30","inet6_address": "fdfe:dcba:9876::1/126","mtu": 9000,"stack": "system","auto_route": true,"strict_route": false,"sniff": true,"sniff_override_destination": false,"include_android_user": [0,10],"include_package": [],"exclude_package": []}]' -i --output-format=json "${sing_config}"
-      log Debug "[Tun] configuration has been added to ${sing_config}"
-    fi
-    # Checks if "type" is "redirect" in configuration
-    if [ "${network_mode}" = "mixed" ]; then
-      if grep -q '"type": "redirect"' "${sing_config}"; then
-        log Info "type [Redirect] already exists in ${sing_config}"
-      else
-        # Add "redirect" configuration if missing
-        "${yq_command}" '.inbounds += [{"type": "redirect","tag": "redirect-in","listen": "::","listen_port": '"${redir_port}"',"sniff": true,"sniff_override_destination": false}]' -i --output-format=json "${sing_config}"
-        log Debug "[Redirect] configuration has been added to ${sing_config}"
-      fi
-    fi
-    sed -i 's/"auto_detect_interface": false/"auto_detect_interface": true/g' "${box_dir}/sing-box/"*.json
-    sed -i 's/auto_route": false/auto_route": true/g' "${box_dir}/sing-box/"*.json
-  else
-    if grep -q '"type": "tun"' "${sing_config}"; then
-      "${yq_command}" 'del(.inbounds[] | select(.type == "tun"))' -i --output-format=json "${sing_config}"
-    fi
-    if grep -q '"type": "redirect"' "${sing_config}"; then
-      "${yq_command}" 'del(.inbounds[] | select(.type == "redirect"))' -i --output-format=json "${sing_config}"
-    fi
-    # Checks if "type" is "tproxy" in configuration
-    if grep -q '"type": "tproxy"' "${sing_config}"; then
-      log Info "type [Tproxy] already exists in ${sing_config}"
-    else
-      # Add "tproxy" configuration if missing
-      "${yq_command}" '.inbounds += [{"type": "tproxy", "tag": "tproxy-in", "listen": "::", "listen_port": '"${tproxy_port}"', "sniff": true, "sniff_override_destination": false}]' -i --output-format=json "${sing_config}"
-      log Debug "[Tproxy] configuration has been added to ${sing_config}"
-    fi
-    # sync tproxy port sing-box, Looping through each JSON file in the directory
-    for file in "${box_dir}/sing-box/"*.json; do
-      tproxy=$(sed -n 's/.*"type": "\(tproxy\)".*/\1/p' "${file}")
-      if [ -n "${tproxy}" ]; then
-        "${yq_command}" -o=json "(.inbounds[]? | select(.type == \"tproxy\") | .listen_port) = ${tproxy_port}" -i --output-format=json "${file}"
-      fi
-    done
-    sed -i 's/"auto_detect_interface": true/"auto_detect_interface": false/g' "${box_dir}/sing-box/"*.json
-    sed -i 's/auto_route": true/auto_route": false/g' "${box_dir}/sing-box/"*.json
-  fi
-}
-
-prepare_clash() {
-  # check configuration file
-  if ! [ -f "${clash_config}" ]; then
-    log Error "configuration file ${clash_config} not found"
-    exit 1
-  else
-    temp_clash_config_file
-    log Info "config ${clash_config}"
-  fi
-
-  # ipv6=$(busybox awk '/ipv6:/ { print $2; found=1; exit } END{ if(!found) print "false" }' "${clash_config}" | head -n 1 2>/dev/null)
-  # sed -i "s/ipv6=.*/ipv6=\"${ipv6}\"/g" ${settings}
-  # sed -i "s/ipv6:.*/ipv6: ${ipv6}/g" "${clash_config}"
-
-  # write external_controller, if not in $clash_config
-  clash_external_controller=$(busybox awk '!/^ *#/ && /external-controller: /{print $1}' "${clash_config}")
-  if [ -z "${clash_external_controller}" ]; then
-    printf "\nexternal-controller: 0.0.0.0:9090" >> "${clash_config}"
-  fi
-
-  # write external_ui, if not in $clash_config
-  clash_external_ui=$(busybox awk '!/^ *#/ && /external-ui: /{print $1}' "${clash_config}")
-  if [ -z "${clash_external_ui}" ]; then
-    printf "\nexternal-ui: ./dashboard" >> "${clash_config}"
-  fi
-
-  # write tproxy-port, if not in $clash_config
-  clash_tproxy_port=$(busybox awk '!/^ *#/ && /tproxy-port: /{print $1}' "${clash_config}")
-  if [ -z "${clash_tproxy_port}" ]; then
-    printf "\ntproxy-port: ${tproxy_port}" >> "${clash_config}"
-  fi
-
-  # write redir-port, if not in $clash_config
-  clash_redir_port=$(busybox awk '!/^ *#/ && /redir-port: /{print $1}' "${clash_config}")
-  if [ -z "${clash_redir_port}" ]; then
-    printf "\nredir-port: ${redir_port}" >> "${clash_config}"
-  fi
-
-  if [[ "${network_mode}" == "mixed" || "${proxy_mode}" == "tun" ]]; then
-    clash_tun_status=$(busybox awk '!/^ *#/ && /tun:/ { getline; split($0, arr, ": "); print arr[2]; found=1; exit } END{ if (!found) print "" }' "${clash_config}" 2>/dev/null)
-    # write TUN settings, if not in $clash_config
-    if [ -z "${clash_tun_status}" ]; then
-      printf '%s\n' '' 'tun:' \
-        '  enable: true' \
-        '  mtu: 9000' \
-        '  device: utun' \
-        '  stack: system # gvisor / system / lwip' \
-        '  dns-hijack:' \
-        '    - any:53' \
-        '    - tcp://any:53' \
-        '  auto-route: true' \
-        '  strict-route: false' \
-        '  auto-detect-interface: true' \
-        '  include-android-user: [0, 10]' \
-        '  exclude-package: []' \ >> "${clash_config}"
-      log Debug "(tun) configuration has been added to ${sing_config}"
-    else
-      log Info  "type (tun) already exists in ${clash_config}"
-    fi
-    sed -i "/tun:/ {n;s/enable: false/enable: true/}" "${clash_config}"
-  else
-    sed -i "/tun:/ {n;s/enable: true/enable: false/}" "${clash_config}"
-  fi
-
-  # Reads the enable value from the tun configuration
-  clash_tun_status=$(busybox awk -F ': ' '/^tun: *$/{getline; print $2}' "${clash_config}")
-  if [ "${clash_tun_status}" != "true" ]; then
-    # sync tproxy port
-    sed -i -E "s/(tproxy-port: )[0-9]+/\1${tproxy_port}/" "${clash_config}"
-    sed -i -E "s/(redir-port: )[0-9]+/\1${redir_port}/" "${clash_config}"
-  else
-    [ "${proxy_mode}" != "tun" ] && sed -i 's/network_mode=.*/network_mode="mixed"/g' "${settings}"
-    # remove tproxy port >>> 0
-    sed -i -E "s/(tproxy-port: )[0-9]+/\10/" "${clash_config}"
-    # sync redir port
-    sed -i -E "s/(redir-port: )[0-9]+/\1${redir_port}/" "${clash_config}"
-  fi
-
-  clash_enhanced_mode=$(busybox awk '!/^ *#/ && /enhanced-mode: / { print $2 }' "${clash_config}" 2>/dev/null)
-  if [ -z "${clash_enhanced_mode}" ]; then
-    # Add enhanced-mode: fake-ip
-    sed -i '/dns:/ {n; /enable:.*/ {a\  enhanced-mode: fake-ip}}' "$clash_config"
-    log Debug "enhanced-mode: fake-ip add success"
-  fi
-
-  if [ "${proxy_mode}" != "tun" ]; then
-    if [[ -n "${packages_list[*]}" || -n "${gid_list[*]}" ]] && [ "${clash_enhanced_mode}" = "fake-ip" ]; then
-      log Warning "${proxy_mode} only works in enhanced-mode: redir-host [Clash.Meta]"
-      log Warning "auto replace fake-ip > redir-host"
-      sed -i "s/enhanced-mode:.*/enhanced-mode: redir-host/g" "${clash_config}"
-    fi
-  fi
-}
-
-temp_clash_config_file() {
-  clash_template="${box_dir}/clash/template"
-  temp_clash_config_file="${clash_config}"
-
-  if [ -f "${clash_template}" ]; then
-    log debug "use template configuration"
-    cp -f "${clash_template}" "${temp_clash_config_file}.temp" && echo "\n" >> "${temp_clash_config_file}.temp"
-    sed -n -E '/^proxies:$/,$p' "${clash_config}" >> "${temp_clash_config_file}.temp"
-    sed -i '/^[[:space:]]*$/d' "${temp_clash_config_file}.temp"
-    if mv "${temp_clash_config_file}.temp" "${clash_config}"; then
-      log Info "The merging of the $clash_config and $clash_template files is complete."
-    fi
-  fi
-}
 
 box_run_bin() {
   log Info "client-list: [ ${bin_list[*]} ]"
@@ -319,28 +111,26 @@ box_run_bin() {
   ulimit -SHn 65535
   case "${bin_name}" in
     sing-box)
-      prepare_singbox
-      if ${bin_path} check -D "${box_dir}/${bin_name}" --config-directory "${box_dir}/${bin_name}" > "${box_run}/${bin_name}.log" 2>&1; then
-        nohup busybox setuidgid "${box_user_group}" "${bin_path}" run -D "${box_dir}/${bin_name}" --config-directory "${box_dir}/${bin_name}" > "${bin_log}" 2>&1 &
+      if ${bin_path} check -D "${box_dir}/${bin_name}" -c "${sing_config}" > "${box_run}/${bin_name}_report.log" 2>&1; then
+        nohup busybox setuidgid "${box_user_group}" "${bin_path}" run -D "${box_dir}/${bin_name}" -c "${sing_config}" > "${bin_log}" 2>&1 &
         PID=$!
         echo -n $PID > "${box_pid}"
         sleep 1
       else
-        log Error "$(<"${box_run}/${bin_name}.log")"
-        log Error "configuration failed. Please check the ${box_run}/${bin_name}.log file."
+        log Error "$(<"${box_run}/${bin_name}_report.log")"
+        log Error "configuration failed. Please check the ${box_run}/${bin_name}_report.log file."
         exit 1
       fi
       ;;
     clash)
-      prepare_clash
-      if ${bin_path} -t -d "${box_dir}/${bin_name}" -f "${clash_config}" > "${box_run}/${bin_name}.log" 2>&1; then
+      if ${bin_path} -t -d "${box_dir}/${bin_name}" -f "${clash_config}" > "${box_run}/${bin_name}_report.log" 2>&1; then
         nohup busybox setuidgid "${box_user_group}" "${bin_path}" -d "${box_dir}/${bin_name}" -f "${clash_config}" > "${bin_log}" 2>&1 &
         PID=$!
         echo -n $PID > "${box_pid}"
         sleep 1
       else
-        log Error "$(<"${box_run}/${bin_name}.log")"
-        log Error "configuration failed. Please check the ${box_run}/${bin_name}.log file."
+        log Error "$(<"${box_run}/${bin_name}_report.log")"
+        log Error "configuration failed. Please check the ${box_run}/${bin_name}_report.log file."
         exit 1
       fi
       ;;
@@ -364,14 +154,14 @@ box_run_bin() {
 
       # run xray
       export XRAY_LOCATION_ASSET="${box_dir}/${bin_name}"
-      if ${bin_path} -test -confdir "${box_dir}/${bin_name}" > "${box_run}/${bin_name}.log" 2>&1; then
+      if ${bin_path} -test -confdir "${box_dir}/${bin_name}" > "${box_run}/${bin_name}_report.log" 2>&1; then
         nohup busybox setuidgid "${box_user_group}" "${bin_path}" run -confdir "${box_dir}/${bin_name}" > "${bin_log}" 2>&1 &
         PID=$!
         echo -n $PID > "${box_pid}"
         sleep 1
       else
-        log Error "$(<"${box_run}/${bin_name}.log")"
-        log Error "configuration failed. Please check the ${box_run}/${bin_name}.log file."
+        log Error "$(<"${box_run}/${bin_name}_report.log")"
+        log Error "configuration failed. Please check the ${box_run}/${bin_name}_report.log file."
         exit 1
       fi
       ;;
@@ -394,14 +184,14 @@ box_run_bin() {
 
       # run v2ray
       export V2RAY_LOCATION_ASSET="${box_dir}/${bin_name}"
-      if ${bin_path} test -d "${box_dir}/${bin_name}" > "${box_run}/${bin_name}.log" 2>&1; then
+      if ${bin_path} test -d "${box_dir}/${bin_name}" > "${box_run}/${bin_name}_report.log" 2>&1; then
         nohup busybox setuidgid "${box_user_group}" "${bin_path}" run -d "${box_dir}/${bin_name}" > "${bin_log}" 2>&1 &
         PID=$!
         echo -n $PID > "${box_pid}"
         sleep 1
       else
-        log Error "$(<"${box_run}/${bin_name}.log")"
-        log Error "configuration failed. Please check the ${box_run}/${bin_name}.log file."
+        log Error "$(<"${box_run}/${bin_name}_report.log")"
+        log Error "configuration failed. Please check the ${box_run}/${bin_name}_report.log file."
         exit 1
       fi
       ;;
@@ -410,20 +200,6 @@ box_run_bin() {
       exit 1
       ;;
   esac
-}
-
-box_cgroup() {
-  if [ "${cgroup_memory}" = "true" ]; then
-    if ${scripts_dir}/box.tool cgroup; then
-      log Info "cgroup limit: ${cgroup_memory_limit}."
-    else
-      log Warning "failed to enable cgroup for ${bin_name}."
-      log Warning "cgroups is turned off"
-      sed -i -E "/cgroup_memory/ s/(true)/false/" "${settings}"
-    fi
-  else
-    log Info "${bin_name} cgroup: disabled."
-  fi
 }
 
 # Function to display the usage of a binary
@@ -469,17 +245,9 @@ box_bin_status() {
   temperature_celsius=$(($(cat /sys/class/power_supply/battery/temp) / 10))
   log Info "battery temperature: ${temperature_celsius}°C"
 
-  # Get the running time of the binary
-  running_time=$(busybox ps -o comm,etime | grep ${bin_name} | busybox awk '{print $2}')
-  if [ -n "${running_time}" ]; then
-    log Info "${bin_name} running time: ${running_time}"
-  else
-    log Info "${bin_name} running time: not available."
-  fi
-
   # Save the process ID to the pid file
   if [ -n "$PID" ]; then
-    sed -Ei "s/^description=(\[.*][[:space:]]*)?/description=[ ⏲ $current_time | ✔ $bin_name service is running!!! ] /g" "$PROPFILE"
+    sed -Ei "s/^description=(\[.*][[:space:]]*)?/description=[ 🕑 $current_time | ✅ $bin_name service is running!!! ] /g" "$PROPFILE"
     echo -n "$PID" > "${box_pid}"
   fi
 }
@@ -487,10 +255,10 @@ box_bin_status() {
 start_box() {
   # Clear the log file and add the timestamp and delimiter
   # cd /data/adb/box/bin; chmod 755 *
-  sed -Ei "s/^description=(\[.*][[:space:]]*)?/description=[ ⏲ $current_time | ☹ Module is working! but no service is running ] /g" "$PROPFILE"
+  sed -Ei "s/^description=(\[.*][[:space:]]*)?/description=[ 🕑 $current_time | 🙃 Module is working! but no service is running ] /g" "$PROPFILE"
 
   echo -n "" > "${box_log}"
-  box_version=$(busybox awk '!/^ *#/ && /version=/ { print $0 }' "/data/adb/modules/box_for_root/module.prop" 2>/dev/null)
+  box_version=$(busybox awk '!/^ *#/ && /version=/ { print $0 }' "/data/adb/modules/box_for_magisk/module.prop" 2>/dev/null)
   if [ -t 1 ]; then
     echo -e "${yellow}$(getprop persist.sys.timezone)${normal}"
     echo -e "${yellow}$(getprop gsm.sim.operator.alpha) / $(getprop gsm.network.type)${normal}"
@@ -533,9 +301,6 @@ start_box() {
   case "${bin_name}" in
     clash|xray|sing-box|v2fly)
       log Info "Good day 🐱"
-      [ "${bin_name}" = "clash" ] && {
-        xclash || exit 1
-      }
       ;;
     *)
       log Error "bin_name: <..${bin_name}..> unknown not defined."
@@ -559,11 +324,15 @@ start_box() {
   # Execute box_run_crontab if run_crontab is not equal to "false"
   [ "${run_crontab}" = "true" ] && box_run_crontab || log Info "crontab disabled."
 
-  # Execute the box_cgroup, box_run_bin, box_detected_port, box_bin_alive,box_bin_status functions
+  # Execute the box_run_bin, box_detected_port, box_bin_alive,box_bin_status functions
   box_run_bin
-  box_cgroup
   # $bin_name detected port
-  if [ "${port_detect}" = "true" ]; then "${scripts_dir}/box.tool" port; else log Info "${bin_name} skipped port detection."; fi
+  if [ "${port_detect}" = "true" ]; then
+    ${scripts_dir}/box.tool port
+  else
+    log Info "${bin_name} skipped port detection."
+  fi
+
   count=0
   while [ $count -le 10 ]; do
     sleep 0.17
@@ -571,9 +340,6 @@ start_box() {
     count=$((count + 1))
   done
   box_bin_status
-
-  # open the yacd in browser
-  open_dashboard
 }
 
 stop_box() {
@@ -597,14 +363,14 @@ stop_box() {
     if [ -f "${box_pid}" ]; then
       rm -f "${box_pid}"
     fi
-    log Warning "${bin_name} service is stopped."
+    log Warning "${bin_name} shutting down, service is stopped."
     log Warning "${bin_name} disconnected."
     [ -t 1 ] && echo -e "${white}--------------------------------------------${normal}"
   else
     log Warning "${bin_name} Not stopped; may still be shutting down or failed to shut down."
     force_stop
   fi
-  sed -Ei "s/^description=(\[.*][[:space:]]*)?/description=[ ⏲ $current_time | ✘ $bin_name service is stopped !!! ] /g" "$PROPFILE"
+  sed -Ei "s/^description=(\[.*][[:space:]]*)?/description=[ 🕑 $current_time | ❌ $bin_name service is stopped !!! ] /g" "$PROPFILE"
 }
 
 stop_cron() {
@@ -666,7 +432,7 @@ case "$1" in
       esac
       box_bin_status
     else
-      log Warning "${bin_name} service is stopped."
+      log Warning "${bin_name} shutting down, service is stopped."
     fi
     ;;
   cron)

@@ -7,7 +7,7 @@ If you have no idea how to configure this module, you may need applications such
 
 ## Installation
 
-- Download the module's zip package from the RELEASE and install it through `Magisk` / `KernelSU`. During installation, you will be asked whether to download the complete package. You can choose either **complete download** or **separate download** later, then reboot your device.
+- Download the module's zip package from the RELEASE and install it through `Magisk` . During installation, you will be asked whether to download the complete package. You can choose either **complete download** or **separate download** later, then reboot your device.
 - This mod supports direct updates in `Magisk Manager` (updated mods will take effect without rebooting the device).
 
 ### Kernel Updates
@@ -197,7 +197,7 @@ You can run the following command to get other related operating instructions:
 
 ```shell
   su -c /data/adb/box/scripts/box.tool
-  # usage: $0 {rconf|reload|upyacd|upcore|upyq|cgroup|port|geox|subs|geosub|all}
+  # usage: $0 {check|reload|upyacd|upcore|cgroup|port|upgeox|all}
   su -c /data/adb/box/scripts/box.service
   # usage: $0 {start|stop|restart|usage|cron}
   su -c /data/adb/box/scripts/box.iptables

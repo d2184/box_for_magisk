@@ -1,6 +1,6 @@
 {
-  "version": "v1.3.0",
-  "versionCode": "20230814",
-  "zipUrl": "https://github.com/taamarin/box_for_magisk/releases/download/v1.3.0/box_for_root-v1.3.0.zip",
-  "changelog": "https://github.com/taamarin/box_for_magisk/raw/master/CHANGELOG.md"
+  "version": "v1.4.5",
+  "versionCode": "20231215",
+  "zipUrl": "https://github.com/d2184/box_for_magisk/releases/download/v1.4.5/box_for_magisk-v1.4.5.zip",
+  "changelog": "https://github.com/d2184/box_for_magisk/raw/master/CHANGELOG.md"
 }
