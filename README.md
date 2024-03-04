@@ -1,4 +1,4 @@
-# Box for Root
+# Box for Magisk
 
 [![ID](https://img.shields.io/badge/id-blue.svg?style=for-the-badge)](docs/index_id.md) [![EN](https://img.shields.io/badge/en-blue.svg?style=for-the-badge)](docs/index_en.md) [![CN](https://img.shields.io/badge/cn-blue.svg?style=for-the-badge)](docs/index_cn.md)
 
@@ -15,11 +15,13 @@
 
 </div>
 
-This project is a [Magisk](https://github.com/topjohnwu/Magisk), [KernelSU](https://github.com/tiann/KernelSU), [APatch](https://github.com/bmax121/APatch) module which includes `clash`, `sing-box`, `v2ray` and `xray` proxies.
+Forked from [taamarin/Box_for_Magisk](https://github.com/taamarin/box_for_magisk)
+
+This project is a [Magisk](https://github.com/topjohnwu/Magisk) module which includes `clash`, `sing-box`, `v2ray` and `xray` proxies.
 
 ## Apk Manager
-BFR Manager [Download](https://github.com/taamarin/box.manager) optional
-> note: notifications will appear continuously, to fix this open Magisk Manager, Click SuperUser, search BoxForRoot, disable logs and notifications 
+BFR Manager [Download](https://github.com/d2184/box) optional
+> note: notifications will appear continuously, to fix this open Magisk Manager, Click SuperUser, search BoxForMagisk, disable logs and notifications 
 
 ## Module Directory
 MODDIR=/data/adb/box
