@@ -370,16 +370,29 @@ upxui() {
   fi
 }
 
+bond1() {
+  su -mm -c "cmd wifi force-low-latency-mode enabled"
+  su -mm -c "sysctl -w net.ipv4.tcp_low_latency=1"
+  su -mm -c "ip link set dev wlan0 txqueuelen 4000"
+}
+
+bond0() {
+  su -mm -c "cmd wifi force-low-latency-mode disabled"
+  su -mm -c "sysctl -w net.ipv4.tcp_low_latency=0"
+  su -mm -c "ip link set dev wlan0 txqueuelen 3000"
+}
+
 case "$1" in
   check)
     check
     ;;
+  bond0|bond1)
+    $1
+    ;;
   upgeox)
     upgeox
     if [ -f "${box_pid}" ]; then
-      if kill -0 "$(<"${box_pid}" 2>/dev/null)"; then
-        reload
-      fi
+      kill -0 "$(<"${box_pid}" 2>/dev/null)" && reload
     fi
     ;;
   upcore)
@@ -400,6 +413,6 @@ case "$1" in
     ;;
   *)
     echo "${red}$0 $1 no found${normal}"
-    echo "${yellow}usage${normal}: ${green}$0${normal} {${yellow}check|upgeox|upcore|upyacd|reload|all${normal}}"
+    echo "${yellow}usage${normal}: ${green}$0${normal} {${yellow}check|bond0|bond1|upgeox|upcore|upyacd|reload|all${normal}}"
     ;;
 esac
