@@ -3,7 +3,7 @@
 scripts_dir="${0%/*}"
 source /data/adb/box/settings.ini
 
-PROPFILE="/data/adb/modules/box_for_root/module.prop"
+PROPFILE="/data/adb/modules/box_for_magisk/module.prop"
 
 box_check_logs() {
   # Delete logs for each bin in the list
@@ -47,36 +47,13 @@ box_run_crontab() {
 
   if [ "${run_crontab}" = "true" ]; then
     log Debug "Cron job enabled"
-    echo "${interva_update} ${scripts_dir}/box.tool geosub" >> "${box_run}/root"
-    log Debug "Interval crontab geox and subs: ${interva_update}."
-    log Info "${bin_name} geox updates: ${update_geo}."
-    if [ "${bin_name}" = "clash" ]; then
-      log Info "${bin_name} subscription update: ${update_subscription}."
-    fi
+    echo "${interval_update} ${scripts_dir}/box.tool upgeox" >> "${box_run}/root"
+    log Debug "Interval crontab geox: ${interval_update}."
+    log Info "${bin_name} geox updates: ${update_geox}."
   else
     log Info "Cron Job disabled"
-    log Info "Crontab geox and subscription is disabled."
+    log Info "Crontab geox is disabled."
   fi
-}
-
-xclash() {
-  local xclash_option="${xclash_option:-mihomo}"
-  # default to "mihomo" if xclash_option is not set
-  current_clash="$(readlink "${bin_dir}/clash")"
-
-  if [ "$current_clash" != "${bin_dir}/xclash/${xclash_option}" ]; then
-    if [ -f "${bin_dir}/xclash/${xclash_option}" ]; then
-      if ! ln -sf "${bin_dir}/xclash/${xclash_option}" "${bin_dir}/clash"; then
-        log Error "Failed to use ${xclash_option}"
-        return 1
-      fi
-    else
-      mkdir -p "${bin_dir}/xclash"
-      log Error "${bin_dir}/xclash/${xclash_option} file not found"
-      return 1
-    fi
-  fi
-  log Info "xclash [ $xclash_option ] setup completed"
 }
 
 box_ownership() {
@@ -267,7 +244,7 @@ prepare_clash() {
   # write external_controller, if not in $clash_config
   clash_external_controller=$(busybox awk '!/^ *#/ && /external-controller: /{print $1}' "${clash_config}")
   if [ -z "${clash_external_controller}" ]; then
-    printf "\nexternal-controller: 0.0.0.0:9090" >> "${clash_config}"
+    printf "\nexternal-controller: 127.0.0.1:9090" >> "${clash_config}"
   fi
 
   # write external_ui, if not in $clash_config
@@ -277,15 +254,27 @@ prepare_clash() {
   fi
 
   # write tproxy-port, if not in $clash_config
-  clash_tproxy_port=$(busybox awk '!/^ *#/ && /tproxy-port: /{print $1}' "${clash_config}")
-  if [ -z "${clash_tproxy_port}" ]; then
-    printf "\ntproxy-port: ${tproxy_port}" >> "${clash_config}"
+  if [[ "${network_mode}" == @(tproxy|enhance) ]]; then
+    clash_tproxy_port=$(busybox awk '!/^ *#/ && /tproxy-port: /{print $1}' "${clash_config}")
+    if [ -z "${clash_tproxy_port}" ]; then
+      printf "\ntproxy-port: ${tproxy_port}" >> "${clash_config}"
+    else
+      sed -i -E "s/(tproxy-port: )[0-9]+/\1${tproxy_port}/" "${clash_config}"
+    fi
+  else
+    sed -i "/tproxy-port/d" "${clash_config}"
   fi
 
   # write redir-port, if not in $clash_config
-  clash_redir_port=$(busybox awk '!/^ *#/ && /redir-port: /{print $1}' "${clash_config}")
-  if [ -z "${clash_redir_port}" ]; then
-    printf "\nredir-port: ${redir_port}" >> "${clash_config}"
+  if [[ "${network_mode}" == @(redirect|mixed|enhance) ]]; then
+    clash_redir_port=$(busybox awk '!/^ *#/ && /redir-port: /{print $1}' "${clash_config}")
+    if [ -z "${clash_redir_port}" ]; then
+      printf "\nredir-port: ${redir_port}" >> "${clash_config}"
+    else
+      sed -i -E "s/(redir-port: )[0-9]+/\1${redir_port}/" "${clash_config}"
+    fi
+  else
+    sed -i "/redir-port/d" "${clash_config}"
   fi
 
   if [[ "${network_mode}" == @(mixed|tun) ]]; then
@@ -328,10 +317,6 @@ prepare_clash() {
     sed -i "/tun:/ {n;s/enable: true/enable: false/}" "${clash_config}"
   fi
 
-  # sync tproxy/redir port
-  sed -i -E "s/(tproxy-port: )[0-9]+/\1${tproxy_port}/" "${clash_config}"
-  sed -i -E "s/(redir-port: )[0-9]+/\1${redir_port}/" "${clash_config}"
-
   clash_enhanced_mode=$(busybox awk '!/^ *#/ && /enhanced-mode: / { print $2 }' "${clash_config}" 2>/dev/null)
   if [ -z "${clash_enhanced_mode}" ]; then
     # Add enhanced-mode: fake-ip
@@ -341,7 +326,7 @@ prepare_clash() {
 
   if [[ "${network_mode}" == @(mixed|tproxy|redirect|enhance) ]]; then
     if [[ -n "${packages_list[*]}" || -n "${gid_list[*]}" ]] && [ "${clash_enhanced_mode}" = "fake-ip" ]; then
-      log Warning "${proxy_mode} only works in enhanced-mode: redir-host xclash[mihomo]"
+      log Warning "${proxy_mode} only works in enhanced-mode: redir-host"
       log Warning "auto replace fake-ip to redir-host"
       sed -i "s/enhanced-mode:.*/enhanced-mode: redir-host/g" "${clash_config}"
     fi
@@ -465,26 +450,6 @@ box_run_bin() {
   esac
 }
 
-box_cgroup() {
-  set_cgroup_config() {
-    local cgroup_attr="$1"
-    local cgroup_value="$2"
-
-    if [ "${cgroup_value}" = "true" ]; then
-      if ${scripts_dir}/box.tool "${cgroup_attr}"; then
-        true
-      else
-        log Warning "failed to enable ${cgroup_attr} for ${bin_name}."
-        log Warning "cgroups ${cgroup_attr} is turned off"
-        sed -i -E "/cgroup_${cgroup_attr}/ s/(true)/false/" "${settings}"
-      fi
-    fi
-  }
-  set_cgroup_config "memcg" "${cgroup_memcg}"
-  set_cgroup_config "cpuset" "${cgroup_cpuset}"
-  set_cgroup_config "blkio" "${cgroup_blkio}"
-}
-
 # Function to display the usage of a binary
 # This script retrieves information about a running binary process and logs it to a log file.
 box_bin_status() {
@@ -497,7 +462,7 @@ box_bin_status() {
   fi
 
   stack=$(if [ "${bin_name}" != "clash" ]; then find "/data/adb/box/sing-box" -type f -name "*.json" -exec busybox awk -F'"' '/"stack"/{print $4}' {} +; else busybox awk '!/^ *#/ && /stack: / { print $2;found=1; exit}' "${clash_config}"; fi)
-  TOAST=1 log Info "${bin_name} service is running."
+  log Info "${bin_name} service is running."
 
   log Info "proxy: ${proxy_mode} + network: ${network_mode} + $(if [[ "${network_mode}" == @(mixed|tun) ]]; then echo "stack: ${stack}"; fi)"
 
@@ -561,7 +526,7 @@ start_box() {
   sed -Ei "s/^description=(\[.*][[:space:]]*)?/description=[ ⏲ $current_time | ☹ Module is working! but no service is running ] /g" "$PROPFILE"
 
   echo -n "" > "${box_log}"
-  box_version=$(busybox awk '!/^ *#/ && /version=/ { print $0 }' "/data/adb/modules/box_for_root/module.prop" 2>/dev/null)
+  box_version=$(busybox awk '!/^ *#/ && /version=/ { print $0 }' "/data/adb/modules/box_for_magisk/module.prop" 2>/dev/null)
 
   if [ -t 1 ]; then
     echo -e "${yellow}$(getprop persist.sys.timezone)${normal}"
@@ -607,25 +572,12 @@ start_box() {
   case "${bin_name}" in
     clash|xray|sing-box|v2fly|hysteria)
       log Info "Good day"
-      [ "${bin_name}" = "clash" ] && {
-        xclash || exit 1
-      }
       ;;
     *)
       log Error "bin_name: [ ${bin_name} ] unknown not defined."
       exit 1
       ;;
   esac
-
-  # apk manager check
-  versionName=$(dumpsys package xyz.chz.bfm | grep versionName | busybox awk -F '=' '{print $2}' | sed 's/-.*//')
-  if [[ -n "${versionName}" && $(echo "${versionName}" | busybox awk '{print ($1 < 1.13)}') -eq 1 ]]; then
-    log Error "Update BFR Manager Apps, Use version 1.13.+"
-    log Error "current version: ${versionName}"
-    exit 1
-  else
-    [ -n "${versionName}" ] && log Info "BFR Manager: ${versionName}"
-  fi
   
   # busybox check
   busybox_code=$(busybox | head -n 1 | busybox awk '{print $2}' | busybox grep -oE '[0-9.]*')
@@ -653,9 +605,8 @@ start_box() {
   # Execute box_run_crontab if run_crontab is not equal to "false"
   [ "${run_crontab}" = "true" ] && box_run_crontab || log Info "crontab disabled."
 
-  # Execute the box_cgroup, box_run_bin, box_detected_port, box_bin_alive,box_bin_status functions
+  # Execute the, box_run_bin, box_detected_port, box_bin_alive,box_bin_status functions
   box_run_bin
-  box_cgroup
 
   count=0
   while [ $count -le 10 ]; do
@@ -689,7 +640,7 @@ stop_box() {
       rm -f "${box_pid}"
     fi
     log Warning "${bin_name} shutting down, service is stopped."
-    TOAST=1 log Warning "${bin_name} disconnected."
+    log Warning "${bin_name} disconnected."
 
     [ -t 1 ] && echo -e "${white}━━━━━━━━━━━━━━━━━━${normal}"
   else
@@ -735,10 +686,6 @@ force_stop() {
 if ! command -v busybox &> /dev/null; then
   log Error "$(which busybox) command not found."
   exit 1
-fi
-
-if command -v ksud &>/dev/null; then
- $scripts_dir/box.tool webroot >/dev/null 2>&1
 fi
 
 case "$1" in

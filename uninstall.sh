@@ -7,10 +7,6 @@ rm_data() {
   else
     rm -rf "${box_data_dir}"
   fi
-  
-  if [ -f "/data/adb/ksu/service.d/box_service.sh" ]; then
-    rm -rf "/data/adb/ksu/service.d/box_service.sh"
-  fi
 
   if [ -f "/data/adb/service.d/box_service.sh" ]; then
     rm -rf "/data/adb/service.d/box_service.sh"

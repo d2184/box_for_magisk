@@ -6,7 +6,7 @@ iptables_path="${scripts_dir}/box.iptables"
 data_box="/data/adb/box"
 run_path="/data/adb/box/run"
 file_settings="/data/adb/box/settings.ini"
-now=$(date +"%I:%M %p")
+now=$(date +"%R")
 
 events="$1"
 monitor_dir="$2"

@@ -15,11 +15,11 @@
 
 </div>
 
-This project is a [Magisk](https://github.com/topjohnwu/Magisk), [KernelSU](https://github.com/tiann/KernelSU), [APatch](https://github.com/bmax121/APatch) module which includes `clash`, `sing-box`, `v2ray` and `xray` proxies.
+This project is a [Magisk](https://github.com/topjohnwu/Magisk) module which includes `clash`, `sing-box`, `v2ray` and `xray` proxies.
 
 ## Apk Manager
-BFR Manager [Download](https://github.com/taamarin/box.manager) optional
-> note: notifications will appear continuously, to fix this open Magisk Manager, Click SuperUser, search BoxForRoot, disable logs and notifications 
+BFR Manager [Download](https://github.com/d2184/box.manager) optional
+> note: notifications will appear continuously, to fix this open Magisk Manager, Click SuperUser, search BoxForMagisk, disable logs and notifications
 
 ## Module Directory
 MODDIR=/data/adb/box
