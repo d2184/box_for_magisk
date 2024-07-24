@@ -8,7 +8,7 @@ user_agent="box_for_magisk"
 # whether use ghproxy to accelerate github download
 url_ghproxy="https://mirror.ghproxy.com"
 use_ghproxy="true"
-# whether to download the mihomo Alpha kernel
+# whether to download the mihomo/sing-box PreRelease kernel
 dev="true"
 
 # Updating files from URLs
@@ -269,7 +269,21 @@ upkernel() {
       api_url="https://api.github.com/repos/SagerNet/sing-box/releases"
       url_down="https://github.com/SagerNet/sing-box/releases"
 
-      latest_version=$(busybox wget --no-check-certificate -qO- "${api_url}" | grep "tag_name" | busybox grep -oE "v[0-9].*" | head -1 | cut -d'"' -f1)
+      if [ "$dev" == true ]; then
+        # Pre-release
+        log Debug "download ${bin_name} Pre-release"
+        latest_version=$(busybox wget --no-check-certificate -qO- "${api_url}" | grep "tag_name" | busybox grep -oE "v[0-9].*" | head -1 | cut -d'"' -f1)
+      else
+        # Latest
+        log Debug "download ${bin_name} Latest"
+        latest_version=$(busybox wget --no-check-certificate -qO- "${api_url}/latest" | grep "tag_name" | busybox grep -oE "v[0-9.]*" | head -1)
+      fi
+
+      if [ -z "$latest_version" ]; then
+        log Error "Failed to get latest stable/beta/alpha version of sing-box"
+        return 1
+      fi
+
       download_link="${url_down}/download/${latest_version}/sing-box-${latest_version#v}-${platform}-${arch}.tar.gz"
       log Debug "download ${download_link}"
       upfile "${box_dir}/${file_kernel}.tar.gz" "${download_link}" && xkernel
