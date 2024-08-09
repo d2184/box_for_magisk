@@ -1,0 +1,44 @@
+#!/system/bin/sh
+
+events=$1
+# monitor_dir=$2
+# monitor_file=$3
+
+export PATH="/data/adb/magisk:/data/adb/ksu/bin:/data/adb/ap/bin:$PATH:/system/bin"
+
+iptables_version=$(iptables --version | busybox awk '/^iptables/ {print $2}')
+required_version="v1.6.1"
+if [ "$(printf '%s\n' "$required_version" "$iptables_version" | sort -V | head -n1)" = "$required_version" ]; then
+  IPV="iptables -w 64"
+  IP6V="ip6tables -w 64"
+else
+  IPV="iptables"
+  IP6V="ip6tables"
+fi
+
+iptables=$IPV
+ip6tables=$IP6V
+
+rules_add() {
+  ip -4 a | busybox awk '/inet/ {print $2}' | grep -vE "^127.0.0.1" | while read -r local_ipv4 ; do
+    if ! iptables -t mangle -nL BOX_LOCAL | grep -q $local_ipv4 > /dev/null 2>&1 ; then
+      ${iptables} -t mangle -I BOX_EXTERNAL 3 -d $local_ipv4 -j RETURN
+      ${iptables} -t mangle -I BOX_LOCAL 4 -d $local_ipv4 -j RETURN
+    fi
+    if ! iptables -t nat -nL BOX_LOCAL | grep -q $local_ipv4 > /dev/null 2>&1 ; then
+      ${iptables} -t nat -I BOX_EXTERNAL 3 -d $local_ipv4 -j RETURN
+      ${iptables} -t nat -I BOX_LOCAL 4 -d $local_ipv4 -j RETURN
+    fi
+  done
+
+  ip -6 a | busybox awk '/inet6/ {print $2}' | grep -vE "^fe80|^::1" | while read -r local_ipv6 ; do
+    if ! ip6tables -t mangle -nL BOX_LOCAL | grep -q $local_ipv6 > /dev/null 2>&1 ; then
+      ${ip6tables} -t mangle -I BOX_EXTERNAL 3 -d $local_ipv6 -j RETURN
+      ${ip6tables} -t mangle -I BOX_LOCAL 4 -d $local_ipv6 -j RETURN
+    fi
+  done
+}
+
+if [ $events = "w" ] ; then
+  rules_add
+fi
