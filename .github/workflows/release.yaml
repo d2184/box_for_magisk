@@ -47,14 +47,6 @@ jobs:
           sed -i "s/$(grep -oP 'version=\K[^ ]+' module.prop)/${{ steps.get_version.outputs.version }}/g" module.prop
           sed -i "s/$(grep -oP 'versionCode=\K[^ ]+' module.prop)/$(date +%Y%m%d)/g" module.prop
 
-      - name: Commit and push changes
-        run: |
-          git config --local user.name "${{ github.actor }}"
-          git config --local user.email "${{ github.actor }}@users.noreply.github.com"
-          git add update.json module.prop
-          git commit --message="${{ steps.get_version.outputs.version }}"
-          git push origin master -f
-
       - name: run build.sh
         run: |
           sh build.sh
