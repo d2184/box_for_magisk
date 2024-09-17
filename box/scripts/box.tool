@@ -6,7 +6,7 @@ source /data/adb/box/settings.ini
 # user agent
 user_agent="box_for_magisk"
 # whether use ghproxy to accelerate github download
-url_ghproxy="https://mirror.ghproxy.com"
+url_ghproxy="https://ghp.ci"
 use_ghproxy="true"
 # whether to download the mihomo/sing-box PreRelease kernel
 dev="true"
