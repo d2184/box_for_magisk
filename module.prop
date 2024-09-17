@@ -1,7 +1,7 @@
 id=box_for_magisk
 name=Box for Magisk
-version=v1.7.1
-versionCode=20240812
+version=v1.7.2
+versionCode=20240917
 author=t@amarin,modded by d2184
 description=use sing-box, clash, v2ray, hysteria and xray for tunnel proxy on android device
 updateJson=https://github.com/d2184/box_for_magisk/raw/master/update.json

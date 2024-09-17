@@ -1,9 +1,6 @@
-#### Changelog v1.7.1
-+ [adjust] net.inotify script
+#### Changelog v1.7.2
++ add USB Tethering `ncm+` to ap_list
++ independent local IP anti-loopback rules
++ provide old clash dns forwarding compatibility for mihom0 transparent proxy [box4magisk@a05e0b0](https://github.com/CHIZI-0618/box4magisk/commit/a05e0b0892a7423fc477f6f917f3a19924acb467)
 
-#### Changelog v1.7.0
-+ feat: Insert rules when the network changes
-+ add option to download sing-box "Pre-release" and "Latest release"
-+ fix: 修复某些情况下clash dns端口匹配不到
-+ add download Hysteria core
-+ adjust scripts box
+[Full Changelog](https://github.com/taamarin/box_for_magisk/compare/v1.7.0...v1.7.2)
