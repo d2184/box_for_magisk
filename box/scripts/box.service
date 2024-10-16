@@ -46,13 +46,12 @@ box_run_crontab() {
   chmod 0755 "${box_run}/root"
 
   if [ "${run_crontab}" = "true" ]; then
-    log Debug "Cron job enabled"
+    log Debug "crontab job enabled"
     echo "${interval_update} ${scripts_dir}/box.tool upgeox" >> "${box_run}/root"
     log Debug "Interval crontab geox: ${interval_update}."
     log Info "${bin_name} geox updates: ${update_geox}."
   else
-    log Info "Cron Job disabled"
-    log Info "Crontab geox is disabled."
+    log Info "crontab Job disabled"
   fi
 }
 
