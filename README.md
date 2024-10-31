@@ -18,7 +18,7 @@
 This project is a [Magisk](https://github.com/topjohnwu/Magisk) module which includes `clash`, `sing-box`, `v2ray` and `xray` proxies.
 
 ## Apk Manager
-BFR Manager [Download](https://github.com/d2184/box.manager) optional
+BFR Manager [Download](https://github.com/d2184/box) optional
 > note: notifications will appear continuously, to fix this open Magisk Manager, Click SuperUser, search BoxForMagisk, disable logs and notifications
 
 ## Module Directory

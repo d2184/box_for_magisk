@@ -1,7 +1,15 @@
-name: Release
+name: Build
 
 on:
   workflow_dispatch:
+  push:
+    paths-ignore:
+      - "docs/**"
+      - ".github/**"
+      - "README.md"
+      - "CHANGELOG.md"
+    branches:
+      - master
 
 env: 
   TZ: Asia/Shanghai
@@ -11,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Release:
+  Build:
     runs-on: ubuntu-latest
     steps:
       - name: Workflow runs delete
@@ -47,11 +55,26 @@ jobs:
           sed -i "s/$(grep -oP 'version=\K[^ ]+' module.prop)/${{ steps.get_version.outputs.version }}/g" module.prop
           sed -i "s/$(grep -oP 'versionCode=\K[^ ]+' module.prop)/$(date +%Y%m%d)/g" module.prop
 
+      - name: Generate Asset
+        if: ${{ !startsWith(github.event.head_commit.message, 'v') }}
+        run: |
+          sudo mkdir -p /box_for_magisk
+          sudo cp -r --parents $(find ./ -type f ! -path './.git/*' ! -name 'CHANGELOG.md' ! -name 'update.json' ! -name 'build.sh' ! -path './.github/*' ! -path './docs/*')  /box_for_magisk/
+      
       - name: run build.sh
+        if: ${{ startsWith(github.event.head_commit.message, 'v') }}
         run: |
           sh build.sh
+      
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.event.head_commit.message, 'v') }}
+        with:
+          name: "box_for_magisk_${{ steps.get_version.outputs.version }}_${{ steps.get_version.outputs.commit_hash }}_${{ steps.get_version.outputs.date }}"
+          path: /box_for_magisk/
 
       - name: Create GitHub Release
+        if: ${{ startsWith(github.event.head_commit.message, 'v') }}
         uses: svenstaro/upload-release-action@master
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
