@@ -7,8 +7,8 @@ Proyek ini tidak bertanggung jawab atas: perangkat yang rusak, kartu SD yang rus
 Jika Anda benar-benar tidak tahu cara mengonfigurasi modul ini, Anda mungkin memerlukan aplikasi seperti **ClashForAndroid, ClashMetaForAndroid, v2rayNG, Surfboard, SagerNet, AnXray, NekoBox, SFA**, dll.
 
 ## Install
-- Unduh paket zip modul dari [RELEASE](https://github.com/taamarin/box_for_magisk/releases) dan instal melalui `Magisk/KernelSU`. Saat menginstal, Anda akan ditanya apakah akan mengunduh paket lengkap, Anda dapat memilih **unduhan lengkap** atau **unduhan terpisah** nanti, lalu mulai ulang perangkat.
-- Mod ini mendukung pembaruan mod langsung berikutnya di `Magisk/KernelSU Manager` (mod yang diperbarui akan berlaku tanpa me-reboot perangkat).
+- Unduh paket zip modul dari [RELEASE](https://github.com/d2184/box_for_magisk/releases) dan instal melalui `Magisk`. Saat menginstal, Anda akan ditanya apakah akan mengunduh paket lengkap, Anda dapat memilih **unduhan lengkap** atau **unduhan terpisah** nanti, lalu mulai ulang perangkat.
+- Mod ini mendukung pembaruan mod langsung berikutnya di `Magisk Manager` (mod yang diperbarui akan berlaku tanpa me-reboot perangkat).
 
 ### Pembaruan Kernel
 Modul ini mencakup kernel berikut:
@@ -26,7 +26,7 @@ Pastikan Anda terhubung ke internet dan jalankan perintah berikut untuk memperba
 
 ```shell
 # perbarui kernel yang dipilih, sesuai dengan `bin_name`
-su -c /data/adb/box/scripts/box.tool upkernel
+su -c /data/adb/box/scripts/box.tool upcore
 ```
 
 Jika Anda menggunakan `clash/sing-box` sebagai kernel yang dipilih, Anda mungkin juga perlu menjalankan perintah berikut untuk dapat menggunakan panel kontro(dashboard):
@@ -81,13 +81,13 @@ su -c /data/adb/box/scripts/box.tool all
 - Buka file `/data/adb/box/settings.ini`, ubah `ap_list` dan tambahkan `wlan+`. BFM akan **mem-proxy hotspot** (mungkin **ap+ / wlan+** untuk perangkat **Mediatek**).
 - Gunakan perintah `ifconfig` di Terminal untuk mengetahui nama AP.
 
-### Aktifkan Cron Job untuk memperbarui Geo dan Subs sesuai jadwal secara otomatis
-- Buka file `/data/adb/box/settings.ini`, ubah nilai `run_crontab=true`, dan atur `interva_update="@daily"` (default), sesuaikan dengan yang anda inginkan.
+### Aktifkan Cron Job untuk memperbarui Geo sesuai jadwal secara otomatis
+- Buka file `/data/adb/box/settings.ini`, ubah nilai `run_crontab=true`, dan atur `interval_update="@daily"` (default), sesuaikan dengan yang anda inginkan.
 ```shell
   # jalankan perintah
   su -c /data/adb/box/scripts/box.service cron
 ```
-- Maka secara otomatis Geox dan Subs akan diperbarui sesuai jadwal interva_update.
+- Maka secara otomatis Geox akan diperbarui sesuai jadwal interval_update.
 
 ## Mulai dan Berhenti
 ### Masuk ke mode manual
@@ -106,21 +106,9 @@ su -c /data/adb/box/scripts/box.tool all
 ```
 - Terminal akan mencetak log pada saat yang sama dan mengeluarkannya ke file log.
 
-## Langganan dan pembaruan basis data Geo
-Anda dapat memperbarui langganan dan basis data Geo secara bersamaan menggunakan perintah berikut:
+## Perbarui basis data Geo
 ```shell
-  su -c /data/adb/box/scripts/box.tool geosub
-```
-
-Atau Anda dapat memperbaruinya satu per satu.
-### perbarui langganan
-```shell
-  su -c /data/adb/box/scripts/box.tool subs
-```
-
-### Perbarui basis data Geo
-```shell
-  su -c /data/adb/box/scripts/box.tool geox
+  su -c /data/adb/box/scripts/box.tool upgeox
 ```
 
 ## instruksi lainnya
@@ -132,7 +120,7 @@ Anda dapat menjalankan perintah berikut untuk mendapatkan instruksi operasi terk
 
 ```shell
   su -c /data/adb/box/scripts/box.tool
-  # usage: {check|bond0|bond1|memcg|cpuset|blkio|geosub|geox|subs|upkernel|upyacd|upyq|upcurl|port|reload|all}
+  # usage: {check|bond0|bond1|upgeox|upcore|upyacd|upyq|upcurl|reload|all}
   su -c /data/adb/box/scripts/box.service
   # usage: $0 {start|stop|restart|status|cron|kcron}
   su -c /data/adb/box/scripts/box.iptables
@@ -140,11 +128,11 @@ Anda dapat menjalankan perintah berikut untuk mendapatkan instruksi operasi terk
 ```
 
 ## uninstall
-- Instalasi yang menghapus modul ini dari Magisk/KernelSU Manager, akan menghapus file `/data/adb/service.d/box_service.sh` dan direktori data BFM di `/data/adb/box.`
+- Instalasi yang menghapus modul ini dari Magisk Manager, akan menghapus file `/data/adb/service.d/box_service.sh` dan direktori data BFM di `/data/adb/box.`
 - Anda dapat menghapus data BFM dengan perintah berikut:
 
 ```shell
   su -c rm -rf /data/adb/box
   su -c rm -rf /data/adb/service.d/box_service.sh
-  su -c rm -rf /data/adb/modules/box_for_root
+  su -c rm -rf /data/adb/modules/box_for_magisk
 ```

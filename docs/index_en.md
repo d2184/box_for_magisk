@@ -6,8 +6,8 @@ This project is not responsible for: damaged devices, corrupted SD cards, or bur
 If you have no idea how to configure this module, you may need applications such as **ClashForAndroid, ClashMetaForAndroid, v2rayNG, Surfboard, SagerNet, AnXray, NekoBox,** etc.
 
 ## Installation
-- Download the modules zip package from the [RELEASE](https://github.com/taamarin/box_for_magisk/releases) and install it through `Magisk/KernelSU`. During installation, you will be asked whether to download the complete package. You can choose either **complete download** or **separate download** later, then reboot your device.
-- This mod supports direct updates in `Magisk/KernelSU Manager` (updated mods will take effect without rebooting the device).
+- Download the modules zip package from the [RELEASE](https://github.com/d2184/box_for_magisk/releases) and install it through `Magisk`. During installation, you will be asked whether to download the complete package. You can choose either **complete download** or **separate download** later, then reboot your device.
+- This mod supports direct updates in `Magisk Manager` (updated mods will take effect without rebooting the device).
 
 ### Kernel Updates
 This module includes the following kernels:
@@ -25,7 +25,7 @@ Make sure you are connected to the internet and run the following command to upd
 
 ```shell
 # Update the selected kernel, based on `${bin_name}`.
-su -c /data/adb/box/scripts/box.tool upkernel
+su -c /data/adb/box/scripts/box.tool upcore
 ```
 
 If you are using `clash/sing-box` as the selected kernel, you may also need to run the following command to open the control panel:
@@ -84,7 +84,7 @@ su -c /data/adb/box/scripts/box.tool all
 - maybe **ap+ / wlan+** for Mediatek devices
 - If you are unsure about the name of the access point (AP), you can use the **ifconfig** command in the Terminal to determine the AP name.
 
-### To enable Cron Job for automatic updates of Geo and Subs according to a schedule.
+### To enable Cron Job for automatic updates of Geo database according to a schedule.
 - Open the file **/data/adb/box/settings.ini** using a text editor.
 - Locate the parameter `run_crontab` in the file.
 - Change the value of `run_crontab` to true.
@@ -97,7 +97,7 @@ su -c /data/adb/box/scripts/box.tool all
   su -c /data/adb/box/scripts/box.service cron
 ```
 
-- This command will execute the Cron Job and initiate the updates for Geo and Subs based on the configured schedule.
+- This command will execute the Cron Job and initiate the updates for Geo based on the configured schedule.
 - Ensure that you have the necessary permissions to execute the command. The updates will automatically occur according to the specified schedule once you have enabled the Cron Job and executed the command.
 
 ## Start and Stop
@@ -119,29 +119,11 @@ su -c /data/adb/box/scripts/box.tool all
 - When executing these commands, the Terminal will print logs simultaneously and output them to the log file.
 
 ## Geo database subscriptions and updates
-To update both the subscription and the Geo database simultaneously, you can use the following command:
-
-```shell
-  # This command will update both the subscription and the Geo database at the same time.
-  su -c /data/adb/box/scripts/box.tool geosub
-```
-
-Alternatively, if you prefer to update them separately, you can use the following commands:
-
-### Update the subscription:
-
-```shell
-  # This command will update the subscription data.
-  su -c /data/adb/box/scripts/box.tool subs
-```
-
-By running these commands, you will be able to update the subscription and the Geo database as needed.
-
-### Update the Geo database:
+To update the Geo database simultaneously, you can use the following command:
 
 ```shell
   # This command will update the Geo database.
-  su -c /data/adb/box/scripts/box.tool geox
+  su -c /data/adb/box/scripts/box.tool upgeox
 ```
 
 ## Here are some additional instructions:
@@ -154,7 +136,7 @@ You can run the following command to get other related operating instructions:
 
 ```shell
   su -c /data/adb/box/scripts/box.tool
-  # usage: {check|bond0|bond1|memcg|cpuset|blkio|geosub|geox|subs|upkernel|upyacd|upyq|upcurl|port|reload|all}
+  # usage: {check|bond0|bond1|upgeox|upcore|upyacd|upyq|upcurl|reload|all}
   su -c /data/adb/box/scripts/box.service
   # usage: $0 {start|stop|restart|status|cron|kcron}
   su -c /data/adb/box/scripts/box.iptables
@@ -162,12 +144,12 @@ You can run the following command to get other related operating instructions:
 ```
 
 ## uninstall
-- An install that removes this module from Magisk/KernelSU Manager, will remove the file **/data/adb/service.d/box_service.sh** and the BFM data directory at **/data/adb/box**.
+- An install that removes this module from Magisk Manager, will remove the file **/data/adb/service.d/box_service.sh** and the BFM data directory at **/data/adb/box**.
 - Remove the BFM data directory by running the following command:
 
 ```shell
   # This command will delete the BFM data directory located at /data/adb/box.
   su -c rm -rf /data/adb/box
   su -c rm -rf /data/adb/service.d/box_service.sh
-  su -c rm -rf /data/adb/modules/box_for_root
+  su -c rm -rf /data/adb/modules/box_for_magisk
 ```

@@ -62,7 +62,7 @@ restart_box() {
 
 # Check Configuration
 check() {
-  # su -c /data/adb/box/scripts/box.tool rconf
+  # su -c /data/adb/box/scripts/box.tool check
   case "${bin_name}" in
     sing-box)
       if ${bin_path} check -D "${box_dir}/${bin_name}" -c "${sing_config}" > "${box_run}/${bin_name}_report.log" 2>&1; then
@@ -212,26 +212,22 @@ upyq() {
 
 # Check and update geoip and geosite
 upgeox() {
-  # su -c /data/adb/box/scripts/box.tool geox
+  # su -c /data/adb/box/scripts/box.tool upgeox
   geodata_mode=$(busybox awk '!/^ *#/ && /geodata-mode:*./{print $2}' "${clash_config}")
   [ -z "${geodata_mode}" ] && geodata_mode=false
   case "${bin_name}" in
     clash)
       geoip_file="${box_dir}/clash/$(if [[ "${bin_name}" == "clash" && "${geodata_mode}" == "false" ]]; then echo "country.mmdb"; else echo "geoip.dat"; fi)"
-      geoip_url="https://github.com/d2184/geoip/raw/release/$(if [[ "${bin_name}" == "clash" && "${geodata_mode}" == "false" ]]; then echo "country-tidy.mmdb"; else echo "geoip-tidy.dat"; fi)"
+      geoip_url="https://github.com/d2184/geoip/raw/release/$(if [[ "${bin_name}" == "clash" && "${geodata_mode}" == "false" ]]; then echo "country-lite.mmdb"; else echo "geoip-lite.dat"; fi)"
       geosite_file="${box_dir}/clash/geosite.dat"
       geosite_url="https://github.com/d2184/geosite/raw/release/geosite.dat"
       ;;
     sing-box)
-      #geoip_file="${box_dir}/sing-box/geoip.db"
-      #geoip_url="https://github.com/d2184/geoip/raw/release/geoip-tidy.db"
-      #geosite_file="${box_dir}/sing-box/geosite.db"
-      #geosite_url="https://github.com/d2184/geosite/raw/release/geosite.db"
-      echo "sing-box v1.8.0+ not support geox"
+      echo "sing-box v1.8.0+ no longer supports geox"
       ;;
     *)
       geoip_file="${box_dir}/${bin_name}/geoip.dat"
-      geoip_url="https://github.com/d2184/geoip/raw/release/geoip-tidy.dat"
+      geoip_url="https://github.com/d2184/geoip/raw/release/geoip-lite.dat"
       geosite_file="${box_dir}/${bin_name}/geosite.dat"
       geosite_url="https://github.com/d2184/geosite/raw/release/geosite.dat"
       ;;
@@ -250,7 +246,7 @@ upgeox() {
 }
 
 upkernel() {
-  # su -c /data/adb/box/scripts/box.tool upkernel
+  # su -c /data/adb/box/scripts/box.tool upcore
   mkdir -p "${bin_dir}/backup"
   if [ -f "${bin_dir}/${bin_name}" ]; then
     cp "${bin_dir}/${bin_name}" "${bin_dir}/backup/${bin_name}.bak" >/dev/null 2>&1
@@ -443,7 +439,7 @@ xkernel() {
 
 # Check and update yacd
 upxui() {
-  # su -c /data/adb/box/scripts/box.tool upxui
+  # su -c /data/adb/box/scripts/box.tool upyacd
   xdashboard="${bin_name}/dashboard"
   if [[ "${bin_name}" == @(clash|sing-box) ]]; then
     file_dashboard="${box_dir}/${xdashboard}.zip"

@@ -6,8 +6,8 @@
 如果你真的不知道如何配置这个模块，你可能需要一个像 **ClashForAndroid、ClashMetaForAndroid、v2rayNG、Surfboard、SagerNet、AnXray、NekoBox** 等应用程序。
 
 ## 安装
-- 从 [RELEASE](https://github.com/taamarin/box_for_magisk/releases) 下载模块 zip 包，并通过 `Magisk/KernelSU` 安装它。安装时会询问是否下载全量包，您可以选择**全量下载**或者稍后再**单独下载**，然后重新启动设备。
-- 本模块支持在 `Magisk/KernelSU Manager` 中进行下一个在线模块更新（更新模块将在不重新启动设备的情况下生效）。
+- 从 [RELEASE](https://github.com/d2184/box_for_magisk/releases) 下载模块 zip 包，并通过 `Magisk` 安装它。安装时会询问是否下载全量包，您可以选择**全量下载**或者稍后再**单独下载**，然后重新启动设备。
+- 本模块支持在 `Magisk Manager` 中进行下一个在线模块更新（更新模块将在不重新启动设备的情况下生效）。
 
 ### 内核更新
 此模块包括如下几种内核：
@@ -25,14 +25,14 @@
 
 ```shell
 # 更新选定的内核
-su -c /data/adb/box/scripts/box.tool upkernel
+su -c /data/adb/box/scripts/box.tool upcore
 ```
 
 如果您使用 `clash` 作为你的选定内核，您可能还需要执行如下指令开启控制面板:
 
 ```shell
 # 更新 Clash 管理面板
-su -c /data/adb/box/scripts/box.tool upxui
+su -c /data/adb/box/scripts/box.tool upyacd
 ```
 
 或者，您可以将所有操作一次性执行(这可能造成不必要的存储空间浪费):
@@ -45,7 +45,7 @@ su -c /data/adb/box/scripts/box.tool all
 ## 配置
 **以下核心服务被称为 BFM**
 - 以下核心服务集体称为 BFM
-- 您可以通过 Magisk/KernelSU Manager 应用程序实时启用或禁用模块以启动或停止 BFM 服务，无需重新启动设备。启动服务可能需要几秒钟的时间，停止服务可以立即生效。
+- 您可以通过 Magisk Manager 应用程序实时启用或禁用模块以启动或停止 BFM 服务，无需重新启动设备。启动服务可能需要几秒钟的时间，停止服务可以立即生效。
 
 ### 核心配置
 - 核心 `bin_name` 配置请查询**内核更新**部分进行配置即可
@@ -79,7 +79,7 @@ su -c /data/adb/box/scripts/box.tool all
 - 打开文件 **/data/adb/box/settings.ini**，修改 `ap_list` 并添加 wlan+。BFM 将代理热点（对于联发科设备，可能是 ap+ / wlan+）。
 - 使用终端中的 `ifconfig` 命令找出 `AP` 的名称。
 
-### 启用 Cron 作业以按计划自动更新 Geo 和 Subs
+### 启用 Cron 作业以按计划自动更新 Geo
 - 打开文件 /data/adb/box/settings.ini，更改 `run_crontab=true` 的值，并设置 interval_update=“@daily”（默认），调整为你想要的。
 
 ```shell
@@ -87,7 +87,7 @@ su -c /data/adb/box/scripts/box.tool all
   su -c /data/adb/box/scripts/box.service cron
 ```
 
-- 因此 Geox 和 Subs 将根据 interval_update 时间表自动更新。
+- 因此 Geox 将根据 interval_update 时间表自动更新。
 
 ## 启动和停止
 ### 进入手动模式
@@ -107,25 +107,11 @@ su -c /data/adb/box/scripts/box.tool all
 
 - 终端会同时打印日志并将其输出到日志文件中。
 
-## 订阅及Geo数据库更新
-您可以使用如下指令同时更新订阅以及 Geo 数据库:
+## Geo数据库更新
+您可以使用如下指令 Geo 数据库:
 
 ```shell
-  su -c /data/adb/box/scripts/box.tool geosub
-```
-
-或者您可以单独更新他们。
-
-### 更新订阅
-
-```shell
-  su -c /data/adb/box/scripts/box.tool subs
-```
-
-### 更新 Geo 数据库
-
-```shell
-  su -c /data/adb/box/scripts/box.tool geox
+  su -c /data/adb/box/scripts/box.tool upgeox
 ```
 
 ## 其他指令
@@ -137,7 +123,7 @@ su -c /data/adb/box/scripts/box.tool all
 
 ```shell
   su -c /data/adb/box/scripts/box.tool
-  # usage: {check|bond0|bond1|memcg|cpuset|blkio|geosub|geox|subs|upkernel|upyacd|upyq|upcurl|port|reload|all}
+  # usage: {check|bond0|bond1|upgeox|upcore|upyacd|upyq|upcurl|reload|all}
   su -c /data/adb/box/scripts/box.service
   # usage: $0 {start|stop|restart|status|cron|kcron}
   su -c /data/adb/box/scripts/box.iptables
@@ -145,11 +131,11 @@ su -c /data/adb/box/scripts/box.tool all
 ```
 
 ## 卸载
-- 从 Magisk/KernelSU Manager 中删除此模块的安装将删除/data/adb/service.d/box_service.sh，并保留 BFM 数据目录位于/data/adb/box。
+- 从 Magisk Manager 中删除此模块的安装将删除/data/adb/service.d/box_service.sh，并保留 BFM 数据目录位于/data/adb/box。
 - 您可以使用以下命令删除 BFM 数据：
 
 ```shell
   su -c rm -rf /data/adb/box
   su -c rm -rf /data/adb/service.d/box_service.sh
-  su -c rm -rf /data/adb/modules/box_for_root
+  su -c rm -rf /data/adb/modules/box_for_magisk
 ```

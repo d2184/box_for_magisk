@@ -81,7 +81,7 @@ box_permission() {
     fi
     log Error "Kernel [ ${bin_name} ] is missing."
     log Error "Please download the [ ${bin_name} ] kernel and place it in the ${bin_dir}/ directory."
-    log Debug "exec 'su -c /data/adb/box/scripts/box.tool upkernel' in terminal"
+    log Debug "exec 'su -c /data/adb/box/scripts/box.tool upcore' in terminal"
     exit 1
   fi
 }
