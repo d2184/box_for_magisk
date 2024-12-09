@@ -340,7 +340,7 @@ start_redirect() {
 
   if [ "${iptables}" = "$IPV" ]; then
     case "${proxy_mode}" in
-      blacklist|black)
+      blacklist)
         if [ -z "$(cat "${uid_list[@]}")" ] ; then
           ${iptables} -t nat -A BOX_LOCAL -p tcp -j REDIRECT --to-ports "${redir_port}"
           [ ${network_mode} = "enhance" ] || log Info "Transparent proxy for all apps."
@@ -361,7 +361,7 @@ start_redirect() {
           }
         fi
         ;;
-      whitelist|white)
+      whitelist)
         if [ -z "$(cat "${uid_list[@]}")" ] ; then
           ${iptables} -t nat -A BOX_LOCAL -p tcp -j REDIRECT --to-ports "${redir_port}"
           [ ${network_mode} = "enhance" ] || log Info "Transparent proxy for all apps."
@@ -524,7 +524,7 @@ start_tproxy() {
   fi
 
   case "${proxy_mode}" in
-    blacklist|black)
+    blacklist)
       if [ -z "$(cat "${uid_list[@]}")" ] ; then
         [ ${network_mode} = "enhance" ] || ${iptables} -t mangle -A BOX_LOCAL -p tcp -j MARK --set-mark "${fwmark}"
         ${iptables} -t mangle -A BOX_LOCAL -p udp -j MARK --set-mark "${fwmark}"
@@ -545,7 +545,7 @@ start_tproxy() {
         [ "${iptables}" = "$IPV" ] && log Info "proxy mode: ${proxy_mode}, GID (${gid_list[*]}) no transparent proxy."
       fi
       ;;
-    whitelist|white)
+    whitelist)
       if [ -z "$(cat "${uid_list[@]}")" ] ; then
         [ ${network_mode} = "enhance" ] || ${iptables} -t mangle -A BOX_LOCAL -p tcp -j MARK --set-mark "${fwmark}"
         ${iptables} -t mangle -A BOX_LOCAL -p udp -j MARK --set-mark "${fwmark}"

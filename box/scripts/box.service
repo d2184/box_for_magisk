@@ -206,7 +206,7 @@ prepare_singbox() {
     # add exclude_package/include_package for tun
     "${yq}" '(.inbounds[] | select(.type == "tun") | .include_package) = []' -i --output-format=json "${sing_config}"
     "${yq}" '(.inbounds[] | select(.type == "tun") | .exclude_package) = []' -i --output-format=json "${sing_config}"
-    [[ ${proxy_mode} = "blacklist" || ${proxy_mode} = "black" ]] && mode="exclude" || mode="include"
+    [ ${proxy_mode} = "blacklist" ] && mode="exclude" || mode="include"
     for package in "${packages_list[@]}"; do
       "${yq}" eval '(.inbounds[] | select(.type == "tun") | .'${mode}'_package) += ["'${package}'"]' -i --output-format=json "${sing_config}"
     done
@@ -317,9 +317,9 @@ prepare_clash() {
     package=$(IFS=","; echo "${packages_list[*]}" | tr ' ' ',')
     list_package="${package}"
 
-    if [[ "${proxy_mode}" = "whitelist" || "${proxy_mode}" = "white" ]]; then
+    if [ "${proxy_mode}" = "whitelist" ]; then
       mode="include"
-    elif [[ "${proxy_mode}" = "blacklist" || "${proxy_mode}" = "black" ]]; then
+    elif [ "${proxy_mode}" = "blacklist" ]; then
       mode="exclude"
     fi
 
@@ -633,8 +633,8 @@ start_box() {
 
   if [ -z "${proxy_mode}" ]; then
     M1=$(busybox awk '!/^ *#/ && /mode:/{print $0}' "${pkg_config}")
-    [ -z $M1 ] && printf "\nmode:white" >> "${pkg_config}"
-    log Debug "prox mode is empty, add mode:white in ${pkg_config}"
+    [ -z $M1 ] && printf "\nmode:whitelist" >> "${pkg_config}"
+    log Debug "prox mode is empty, add mode:whitelist in ${pkg_config}"
   fi
 
   # Execute the box_run_bin, box_bin_alive, box_bin_status functions
